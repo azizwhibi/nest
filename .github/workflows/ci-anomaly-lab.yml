@@ -1,0 +1,60 @@
+name: CI Anomaly Detection Lab
+
+on:
+  push:
+    branches: ["master", "main"]
+  workflow_dispatch:  # Permet de lancer manuellement
+
+jobs:
+
+  # ✅ Job normal - devrait toujours passer
+  normal-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm run test 2>/dev/null || echo "Tests completed"
+
+  # ❌ Anomalie 1 - dépendance inexistante
+  broken-dependency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install fake package
+        run: npm install this-package-does-not-exist-xyz@99.0.0
+
+  # ⏱️ Anomalie 2 - timeout
+  slow-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Simulate heavy process
+        run: |
+          echo "Starting heavy computation..."
+          sleep 90
+
+  # ❌ Anomalie 3 - commande invalide
+  bad-command:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run invalid script
+        run: |
+          echo "Running deployment..."
+          ./deploy.sh --env production
+          echo "Done"
+
+  # ✅ Job normal 2 - lint simulé
+  lint-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check code style
+        run: |
+          echo "Linting code..."
+          echo "No lint errors found."
+          exit 0
